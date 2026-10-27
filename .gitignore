@@ -1,0 +1,9 @@
+node_modules/
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+rendered.yaml
+kubeconform
+*.sarif
+.DS_Store

@@ -1,0 +1,87 @@
+name: CD
+
+# Runs after CI succeeds on main: push both images to ECR, then roll out to EKS.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # GitHub OIDC -> AWS, no stored access keys
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+  CLUSTER_NAME: notes-eks
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment: production # add required reviewers in repo settings for a manual gate
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push images
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          TAG: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          for tier in backend frontend; do
+            docker build -t "$REGISTRY/notes-$tier:$TAG" "$tier"
+            docker push "$REGISTRY/notes-$tier:$TAG"
+          done
+
+      - name: Deploy to EKS
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          TAG: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$AWS_REGION"
+          cd k8s
+          kustomize edit set image \
+            backend="$REGISTRY/notes-backend:$TAG" \
+            frontend="$REGISTRY/notes-frontend:$TAG"
+          kubectl apply -k .
+          kubectl -n notes rollout status deploy/backend --timeout=180s
+          kubectl -n notes rollout status deploy/frontend --timeout=180s
+
+      - name: Roll back on failure
+        if: failure()
+        run: |
+          kubectl -n notes rollout undo deploy/backend || true
+          kubectl -n notes rollout undo deploy/frontend || true
+
+      - name: Smoke test
+        run: |
+          HOST=$(kubectl -n notes get svc frontend -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          for i in $(seq 1 30); do
+            curl -fsS "http://$HOST/api/ready" && exit 0
+            sleep 10
+          done
+          echo "Smoke test failed" && exit 1
+
+      - name: Summary
+        if: success()
+        env:
+          TAG: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          HOST=$(kubectl -n notes get svc frontend -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          echo "### Deployed \`${TAG::7}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "App: http://$HOST" >> "$GITHUB_STEP_SUMMARY"

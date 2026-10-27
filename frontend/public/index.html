@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Notes</title>
+  <style>
+    :root { --bg: #f6f7f9; --card: #fff; --text: #1b1f24; --muted: #6a737d; --accent: #2563eb; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); }
+    main { max-width: 640px; margin: 48px auto; padding: 0 16px; }
+    h1 { margin: 0 0 4px; }
+    .sub { color: var(--muted); margin: 0 0 24px; font-size: 0.9rem; }
+    form { display: flex; gap: 8px; margin-bottom: 24px; }
+    input { flex: 1; padding: 10px 12px; border: 1px solid #d0d7de; border-radius: 6px; font-size: 1rem; }
+    button { padding: 10px 16px; border: 0; border-radius: 6px; background: var(--accent); color: #fff; cursor: pointer; }
+    ul { list-style: none; padding: 0; margin: 0; }
+    li { display: flex; justify-content: space-between; align-items: center; background: var(--card);
+         padding: 12px 16px; border-radius: 6px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+    li button { background: transparent; color: var(--muted); padding: 4px 8px; }
+    #error { color: #b42318; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Notes</h1>
+    <p class="sub">Web tier (nginx) → API tier (Node.js) → data tier (Amazon RDS PostgreSQL)</p>
+    <form id="form">
+      <input id="text" maxlength="500" placeholder="Write a note" aria-label="Note text" required>
+      <button type="submit">Add</button>
+    </form>
+    <p id="error" role="alert"></p>
+    <ul id="list"></ul>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

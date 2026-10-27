@@ -1,0 +1,21 @@
+{
+  "name": "notes-api",
+  "version": "1.0.0",
+  "description": "Business tier of a 3-tier app: REST API over PostgreSQL",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "pg-mem": "^3.0.4"
+  },
+  "license": "MIT"
+}

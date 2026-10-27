@@ -1,0 +1,8 @@
+# Applied once by a cluster admin (scripts/create-db-secret.sh). CI only has edit rights
+# inside this namespace, so it can't create or change namespaces.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: notes
+  labels:
+    pod-security.kubernetes.io/enforce: restricted

@@ -1,0 +1,44 @@
+# Enforced by the VPC CNI network policy agent (enabled in terraform/eks.tf).
+# Default: nothing can talk to anything in this namespace.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: notes
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+---
+# Web tier: open to the load balancer.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-from-internet
+  namespace: notes
+spec:
+  podSelector:
+    matchLabels:
+      app: frontend
+  policyTypes: [Ingress]
+  ingress:
+    - ports:
+        - port: 8080
+---
+# API tier: only the web tier may call it.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-from-frontend
+  namespace: notes
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: frontend
+      ports:
+        - port: 8080
