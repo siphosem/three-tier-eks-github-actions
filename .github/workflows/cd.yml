@@ -22,7 +22,8 @@ env:
 
 jobs:
   deploy:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    # Skips until the AWS_DEPLOY_ROLE_ARN repository variable exists (see README).
+    if: vars.AWS_DEPLOY_ROLE_ARN != '' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     environment: production # add required reviewers in repo settings for a manual gate
     steps:
